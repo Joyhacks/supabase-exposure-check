@@ -85,7 +85,6 @@ Read-only. Only scan apps you own or have permission to test.`);
   const add = (level, title, detail = '', fix = '') => findings.push({ level, title, detail, fix });
   const progress = a.json ? () => {} : (s) => log(`  ${s}`);
 
-  // 1. Read the site.
   let found = empty();
   if (a.site) {
     progress(`Reading ${a.site} ...`);
@@ -98,7 +97,6 @@ Read-only. Only scan apps you own or have permission to test.`);
     }
   }
 
-  // 2. Secrets in the shipped JavaScript.
   for (const k of found.keys.values()) {
     if (k.role === 'service_role') {
       add('critical', 'Supabase service_role key is in your public JavaScript', `Key ${mask(k.token)}${k.ref ? ` for project ${k.ref}` : ''}. This key bypasses every RLS policy. Anyone who opens DevTools can read, change or delete all of your data.`,
@@ -110,7 +108,6 @@ Read-only. Only scan apps you own or have permission to test.`);
     add(level, `${s.what} is in your public JavaScript`, `Value ${mask(s.value)}.`, 'Rotate it with the provider, then make the call that needs it from a server function instead of the browser.');
   }
 
-  // 3. Which project and which public key.
   const ref = a.url ? (a.url.match(/https:\/\/([a-z0-9]{20})\.supabase/) || [])[1] || null : [...found.projects][0] || null;
   const base = a.url ? a.url.replace(/\/+$/, '') : ref ? `https://${ref}.supabase.co` : null;
   if (found.projects.size > 1 && !a.url) add('info', 'More than one Supabase project referenced', [...found.projects].join(', '), `Checked ${ref}. Use --supabase-url to check another.`);
@@ -138,7 +135,6 @@ Read-only. Only scan apps you own or have permission to test.`);
   if (base && key) {
     progress(`Checking ${base} with the public key ...`);
 
-    // 4. Auth settings.
     const auth = await checkAuth(fetchFn, base, key, ms);
     report.auth = auth;
     if (auth.ok && auth.signupOpen && auth.autoconfirm) {
@@ -148,7 +144,6 @@ Read-only. Only scan apps you own or have permission to test.`);
       add('info', 'Public signup is open', `Email confirmation is on.${auth.providers.length ? ` Social providers: ${auth.providers.join(', ')}.` : ''}`, 'Fine for most apps. Make sure policies check ownership, not just "authenticated".');
     }
 
-    // 5. Tables and functions.
     const schema = await listSchema(fetchFn, base, key, ms);
     if (schema.exposed) add('info', 'Table and function names are listable by anyone', `${schema.tables.length} table(s)/view(s) and ${schema.rpcs.length} function(s) appear in the public API schema.`, 'No data is exposed by this alone, but it maps your database for an attacker. Newer Supabase API keys restrict it.');
     const tables = [...new Set([...a.tables, ...found.tables, ...schema.tables])].slice(0, MAX_TABLES);
@@ -161,13 +156,12 @@ Read-only. Only scan apps you own or have permission to test.`);
       const sensitive = SENSITIVE.test(r.table);
       add(sensitive ? 'critical' : 'high', `Anyone can read table "${r.table}"`,
         `${r.rows != null ? `${r.rows} row(s)` : 'At least one row'} visible with only the public key.${sensitive ? ' The name suggests personal or business data.' : ' If this is meant to be public (products, blog posts), this is fine.'}`,
-        `Enable RLS and add a policy that scopes reads, for example:\n  alter table public.${r.table} enable row level security;\n  create policy "own rows" on public.${r.table} for select using (auth.uid() = user_id);`);
+        `Check that RLS is on and that no select policy is open to everyone (using (true) is the usual culprit). Then scope reads, for example:\n  alter table public.${r.table} enable row level security;\n  create policy "own rows" on public.${r.table} for select using (auth.uid() = user_id);`);
     }
     if (tables.length > MAX_TABLES) add('info', `Checked the first ${MAX_TABLES} tables`, '', 'Use --tables to target specific ones.');
     if (rpcs.length) add('info', `${rpcs.length} database function(s) callable from the browser`, rpcs.slice(0, 20).join(', ') + (rpcs.length > 20 ? ', ...' : ''),
       'Anyone with the public key can call these. Each one that is SECURITY DEFINER must check auth.uid() itself and set search_path.');
 
-    // 6. Storage.
     const bl = await listBuckets(fetchFn, base, key, ms);
     const buckets = [...new Set([...a.buckets, ...found.buckets, ...bl.buckets.map((b) => b.name)])];
     if (bl.visible) add('info', 'Bucket list is visible to anyone', bl.buckets.map((b) => `${b.name}${b.public ? ' (public)' : ''}`).join(', '));

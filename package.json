@@ -1,7 +1,7 @@
 {
   "name": "supabase-exposure-check",
   "version": "1.0.0",
-  "description": "What can a stranger reach in your Supabase app? Read-only check of RLS, leaked keys, signups and storage from your live site.",
+  "description": "Read-only check of what an anonymous visitor can reach in a Supabase-backed site: open tables, leaked keys, signup settings and storage.",
   "type": "module",
   "bin": {
     "supabase-exposure-check": "src/cli.mjs"
