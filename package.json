@@ -1,0 +1,23 @@
+{
+  "name": "supabase-exposure-check",
+  "version": "1.0.0",
+  "description": "What can a stranger reach in your Supabase app? Read-only check of RLS, leaked keys, signups and storage from your live site.",
+  "type": "module",
+  "bin": {
+    "supabase-exposure-check": "src/cli.mjs"
+  },
+  "files": ["src"],
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["supabase", "rls", "security", "lovable", "audit", "postgrest"],
+  "author": "Adeola Ilori",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Joyhacks/supabase-exposure-check.git"
+  }
+}
